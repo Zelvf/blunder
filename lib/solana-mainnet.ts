@@ -1,6 +1,7 @@
 import {
   Connection,
   ParsedInstruction,
+  ParsedTransactionWithMeta,
   PartiallyDecodedInstruction,
   PublicKey,
   SystemInstruction,
@@ -11,6 +12,7 @@ import type { Mood } from "@/lib/types";
 
 export const SOLANA_NETWORK = "mainnet-beta" as const;
 export const DEFAULT_MAINNET_RPC = "https://api.mainnet.solana.com";
+export const BLUNDER_CHANNEL_ADDRESS = new PublicKey("6xmKJsDZ6PTPHpMmbZEtyXPJsTCqLQDCkRg81GiyHj2o");
 export const ALLOWED_MOOD_LAMPORTS = new Map<number, Mood>([
   [1_000, "calm"],
   [2_000, "greedy"],
@@ -27,30 +29,76 @@ export function explorerTransactionUrl(signature: string) {
 
 export function validateSignedMoodTransaction(transaction: Transaction) {
   if (!transaction.feePayer) throw new Error("The transaction has no fee payer.");
-  if (transaction.instructions.length !== 1) {
-    throw new Error("A mood transaction must contain exactly one instruction.");
+  if (transaction.instructions.length !== 2) {
+    throw new Error("A mood transaction must contain exactly two bounded instructions.");
   }
 
-  const instruction = transaction.instructions[0];
-  if (!instruction.programId.equals(SystemProgram.programId)) {
-    throw new Error("Only a native SOL self-transfer is accepted.");
+  if (transaction.instructions.some((instruction) => !instruction.programId.equals(SystemProgram.programId))) {
+    throw new Error("Only native SOL transfer instructions are accepted.");
   }
 
-  const decoded = SystemInstruction.decodeTransfer(instruction);
-  const lamports = Number(decoded.lamports);
+  const transfers = transaction.instructions.map((instruction) => SystemInstruction.decodeTransfer(instruction));
+  const marker = transfers.find((transfer) => transfer.fromPubkey.equals(transfer.toPubkey));
+  const channelReference = transfers.find(
+    (transfer) => transfer.toPubkey.equals(BLUNDER_CHANNEL_ADDRESS) && Number(transfer.lamports) === 0,
+  );
+  if (!marker || !channelReference || !marker.fromPubkey.equals(channelReference.fromPubkey)) {
+    throw new Error("The transaction is not a canonical BLUNDER mood signal.");
+  }
+
+  const lamports = Number(marker.lamports);
   const mood = ALLOWED_MOOD_LAMPORTS.get(lamports);
   if (!mood) throw new Error("The transfer amount is not a valid mood marker.");
-  if (!decoded.fromPubkey.equals(decoded.toPubkey)) {
-    throw new Error("The transfer must return to the signing wallet.");
-  }
-  if (!transaction.feePayer.equals(decoded.fromPubkey)) {
+  if (!transaction.feePayer.equals(marker.fromPubkey)) {
     throw new Error("The signing wallet must also pay the network fee.");
   }
   if (!transaction.verifySignatures()) {
     throw new Error("The transaction signature is invalid.");
   }
 
-  return { signer: decoded.fromPubkey.toBase58(), lamports, mood };
+  return { signer: marker.fromPubkey.toBase58(), lamports, mood };
+}
+
+export function parseMoodTransaction(transaction: ParsedTransactionWithMeta) {
+  if (transaction.meta?.err) throw new Error("The transaction exists but did not succeed.");
+
+  const instructions = transaction.transaction.message.instructions as (
+    | ParsedInstruction
+    | PartiallyDecodedInstruction
+  )[];
+  if (instructions.length !== 2) {
+    throw new Error("A BLUNDER mood transaction must contain exactly two instructions.");
+  }
+
+  const transfers = instructions.filter(
+    (instruction): instruction is ParsedInstruction =>
+      "parsed" in instruction &&
+      instruction.program === "system" &&
+      instruction.parsed?.type === "transfer",
+  );
+  if (transfers.length !== 2) throw new Error("The transaction contains an unsupported instruction.");
+
+  const parsedTransfers = transfers.map((instruction) => ({
+    source: String(instruction.parsed.info?.source || ""),
+    destination: String(instruction.parsed.info?.destination || ""),
+    lamports: Number(instruction.parsed.info?.lamports),
+  }));
+  const marker = parsedTransfers.find((transfer) => transfer.source === transfer.destination);
+  const channelReference = parsedTransfers.find(
+    (transfer) =>
+      transfer.destination === BLUNDER_CHANNEL_ADDRESS.toBase58() && transfer.lamports === 0,
+  );
+  const mood = marker ? ALLOWED_MOOD_LAMPORTS.get(marker.lamports) : undefined;
+  if (!marker || !channelReference || marker.source !== channelReference.source || !mood) {
+    throw new Error("The transaction is not a canonical BLUNDER mood signal.");
+  }
+
+  const signer = transaction.transaction.message.accountKeys.find(
+    (account) => account.signer && account.pubkey.equals(new PublicKey(marker.source)),
+  );
+  if (!signer) throw new Error("The transfer source did not sign the transaction.");
+
+  return { signer: marker.source, lamports: marker.lamports, mood };
 }
 
 export async function verifyMoodSignature(signature: string) {
@@ -67,36 +115,7 @@ export async function verifyMoodSignature(signature: string) {
   }
 
   if (!transaction) throw new Error("That signature was not found on Solana mainnet.");
-  if (transaction.meta?.err) throw new Error("The transaction exists but did not succeed.");
-
-  const instructions = transaction.transaction.message.instructions as (
-    | ParsedInstruction
-    | PartiallyDecodedInstruction
-  )[];
-  if (instructions.length !== 1) {
-    throw new Error("A BLUNDER mood transaction must contain exactly one instruction.");
-  }
-  const transfer = instructions.find(
-    (instruction): instruction is ParsedInstruction =>
-      "parsed" in instruction &&
-      instruction.program === "system" &&
-      instruction.parsed?.type === "transfer",
-  );
-  if (!transfer) throw new Error("No native SOL transfer was found in that transaction.");
-
-  const source = String(transfer.parsed.info?.source || "");
-  const destination = String(transfer.parsed.info?.destination || "");
-  const lamports = Number(transfer.parsed.info?.lamports);
-  const mood = ALLOWED_MOOD_LAMPORTS.get(lamports);
-  if (!source || source !== destination) {
-    throw new Error("The transaction is not a BLUNDER self-transfer.");
-  }
-  if (!mood) throw new Error("The transfer amount is not a BLUNDER mood marker.");
-
-  const signer = transaction.transaction.message.accountKeys.find(
-    (account) => account.signer && account.pubkey.equals(new PublicKey(source)),
-  );
-  if (!signer) throw new Error("The transfer source did not sign the transaction.");
+  const { signer, lamports, mood } = parseMoodTransaction(transaction);
 
   const now = Math.floor(Date.now() / 1_000);
   if (!transaction.blockTime || now - transaction.blockTime > 15 * 60) {
@@ -106,7 +125,7 @@ export async function verifyMoodSignature(signature: string) {
   return {
     verified: true,
     signature,
-    signer: source,
+    signer,
     mood,
     lamports,
     slot: transaction.slot,

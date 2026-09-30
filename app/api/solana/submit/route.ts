@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       maxRetries: 3,
       skipPreflight: false,
     });
-    await connection.confirmTransaction(signature, "confirmed");
+    await connection.confirmTransaction(signature, "finalized");
     const verified = await verifyMoodSignature(signature);
 
     if (verified.signer !== expected.signer || verified.lamports !== expected.lamports) {
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
       : rawMessage;
     console.warn("Mainnet mood transaction rejected:", message);
     return Response.json(
-      { error: `${message} No mood change was applied.` },
+      { error: `${message} No global mood change was applied.` },
       { status: 422 },
     );
   }

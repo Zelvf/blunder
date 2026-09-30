@@ -22,6 +22,12 @@ export function EventRail({ events }: { events: ChainEvent[] }) {
         <span className="network-pill"><i /> MAINNET</span>
       </div>
       <div className="event-list" aria-live="polite">
+        {!events.length ? (
+          <div className="event-empty">
+            <strong>No global signals this round.</strong>
+            <span>The finalized slot clock is still advancing the game.</span>
+          </div>
+        ) : null}
         {events.slice(0, 4).map((event, index) => (
           <article className="event-row" key={event.id}>
             <span className={`event-glyph event-glyph--${event.mood}`}>{event.mood === "tilted" ? "⚡" : event.mood === "greedy" ? "◆" : "◉"}</span>
@@ -35,7 +41,7 @@ export function EventRail({ events }: { events: ChainEvent[] }) {
               ) : (
                 <span>{shortSignature(event.signature)}</span>
               )}
-              <small>{index === 0 ? "now" : `${index * 2 + 1}m ago`}</small>
+              <small>{index === 0 ? "latest" : `slot ${event.slot.toLocaleString()}`}</small>
             </div>
           </article>
         ))}

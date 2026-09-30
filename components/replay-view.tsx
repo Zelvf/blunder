@@ -1,52 +1,71 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Chess } from "chess.js";
 import { SiteHeader } from "@/components/site-header";
 import { ChessBoard } from "@/components/chess-board";
 import { MoveCard } from "@/components/move-card";
-import type { SavedGame } from "@/lib/types";
+import type { GlobalGameState } from "@/lib/types";
 
 export function ReplayView() {
-  const [game, setGame] = useState<SavedGame>();
+  const [game, setGame] = useState<GlobalGameState>();
   const [index, setIndex] = useState(0);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      const raw = localStorage.getItem("blunder:last-game");
-      if (!raw) return;
-      try {
-        const parsed = JSON.parse(raw) as SavedGame;
-        setGame(parsed);
-        setIndex(Math.max(0, parsed.moves.length - 1));
-      } catch {
-        localStorage.removeItem("blunder:last-game");
-      }
-    }, 0);
-    return () => window.clearTimeout(timer);
+  const loadReplay = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/game/state", { cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "The global replay is unavailable.");
+      const nextGame = result as GlobalGameState;
+      setGame(nextGame);
+      setIndex(Math.max(0, nextGame.moves.length - 1));
+      setError("");
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "The global replay is unavailable.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => void loadReplay(), 0);
+    return () => window.clearTimeout(timer);
+  }, [loadReplay]);
+
   const move = game?.moves[index];
-  const fen = move?.fenAfter || new Chess().fen();
+  const fen = move?.fenAfter || game?.fen || new Chess().fen();
 
   return (
     <main className="replay-page">
       <SiteHeader active="replay" compact />
       <section className="replay-hero">
         <div>
-          <p className="eyebrow">PUBLIC GAME ARCHIVE</p>
-          <h1>Every bad idea,<br /><em>perfectly preserved.</em></h1>
+          <p className="eyebrow">CANONICAL GAME REPLAY</p>
+          <h1>One public game,<br /><em>perfectly preserved.</em></h1>
         </div>
-        <p>Select a move to inspect the exact board, mood, candidate set, engine evaluation, and checkpoint that produced it.</p>
+        <div className="replay-hero-copy">
+          <p>Select a move to inspect the exact board, mood, candidate set, engine evaluation, slot trigger, and checkpoint seen by every viewer.</p>
+          <button className="outline-button" type="button" disabled={loading} onClick={() => void loadReplay()}>{loading ? "Syncing…" : "Sync latest"}</button>
+        </div>
       </section>
 
-      {!game?.moves.length ? (
+      {error ? (
         <section className="empty-replay">
           <span>♞</span>
-          <h2>No moves on the record—yet.</h2>
-          <p>Start a game in the live arena, play at least one move, then come back here.</p>
-          <Link className="primary-button" href="/">Go to the live arena →</Link>
+          <h2>Replay temporarily unavailable.</h2>
+          <p>{error}</p>
+          <button className="primary-button" type="button" onClick={() => void loadReplay()}>Try again</button>
+        </section>
+      ) : !game?.moves.length ? (
+        <section className="empty-replay">
+          <span>♞</span>
+          <h2>The next chain tick is on its way.</h2>
+          <p>This round has just begun. Moves appear automatically as Solana slots finalize.</p>
+          <Link className="primary-button" href="/">Watch the live arena →</Link>
         </section>
       ) : (
         <section className="replay-layout">

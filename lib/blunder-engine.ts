@@ -34,24 +34,15 @@ export function evaluatePosition(game: Chess) {
   return Number(score.toFixed(2));
 }
 
-function moveScore(game: Chess, move: Move) {
-  game.move(move);
-  let score = evaluatePosition(game);
-
-  if (!game.isGameOver()) {
-    const replies = game.moves({ verbose: true });
-    let worstReply = score;
-    for (const reply of replies) {
-      game.move(reply);
-      const replyScore = evaluatePosition(game);
-      game.undo();
-      worstReply = move.color === "w" ? Math.min(worstReply, replyScore) : Math.max(worstReply, replyScore);
-    }
-    score = score * 0.35 + worstReply * 0.65;
-  }
-
-  game.undo();
-  return Number(score.toFixed(2));
+function moveScore(baseScore: number, move: Move) {
+  const direction = move.color === "w" ? 1 : -1;
+  const captureValue = move.captured ? PIECE_VALUE[move.captured] : 0;
+  const promotionValue = move.promotion ? PIECE_VALUE[move.promotion] - PIECE_VALUE.p : 0;
+  const positionDelta = positionalValue(move.to) - positionalValue(move.from);
+  const forcingValue = move.san.includes("#") ? 100 : move.san.includes("+") ? 0.25 : 0;
+  const castleValue = move.san.startsWith("O-O") ? 0.18 : 0;
+  if (move.san.includes("#")) return direction * 100;
+  return Number((baseScore + direction * (captureValue + promotionValue + positionDelta + forcingValue + castleValue)).toFixed(2));
 }
 
 function seededIndex(seed: string, size: number) {
@@ -66,14 +57,15 @@ function seededIndex(seed: string, size: number) {
 export function getDecision(game: Chess, mood: Mood) {
   const turn = game.turn();
   const verboseMoves = game.moves({ verbose: true });
+  const direction = turn === "w" ? 1 : -1;
+  const baseScore = evaluatePosition(game);
   const scored = verboseMoves.map((move) => ({
     move,
-    score: moveScore(game, move),
+    score: moveScore(baseScore, move),
     captureValue: move.captured ? PIECE_VALUE[move.captured] : 0,
   }));
 
-  const direction = turn === "w" ? 1 : -1;
-  scored.sort((a, b) => (b.score - a.score) * direction);
+  scored.sort((a, b) => (b.score - a.score) * direction || a.move.san.localeCompare(b.move.san));
   const objective = scored[0];
   let selected = objective;
   let reason = "CALM selected the engine's highest-rated continuation.";

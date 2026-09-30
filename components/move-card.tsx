@@ -5,7 +5,7 @@ export function MoveCard({ move, focused = false }: { move?: MoveRecord; focused
     return (
       <section className="move-card move-card--empty">
         <span className="big-knight" aria-hidden="true">♞</span>
-        <p>Start the clock to reveal BLUNDER&apos;s candidate moves and questionable reasoning.</p>
+        <p>The chain clock is warming up. The first finalized move will appear automatically.</p>
       </section>
     );
   }

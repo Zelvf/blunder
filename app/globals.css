@@ -119,6 +119,11 @@ h1 em, .proof-copy h2 em { font-family: Georgia, serif; font-weight: 400; }
 .arena-titlebar { max-width: 1380px; margin: 0 auto 32px; display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
 .arena-titlebar h2, .section-heading h2 { margin: 8px 0 0; font-size: clamp(28px, 3vw, 47px); letter-spacing: -2.2px; }
 .arena-titlebar h2 span { font: italic 400 .7em Georgia, serif; color: var(--coral); }
+.chain-clock { display: flex; align-items: stretch; gap: 10px; }
+.chain-clock > div { min-width: 132px; padding: 10px 13px; border: 1.5px solid var(--ink); display: grid; gap: 6px; background: var(--paper); }
+.chain-clock span { font: 800 8px/1 "Courier New", monospace; color: var(--muted); letter-spacing: .7px; }
+.chain-clock strong { font: 900 11px/1 "Courier New", monospace; }
+.sync-error { max-width: 1380px; margin: -14px auto 28px; padding: 12px 14px; border: 1px solid var(--coral); background: #fff0eb; font: 800 10px/1.4 "Courier New", monospace; }
 .game-controls { display: flex; align-items: flex-end; gap: 10px; }
 .game-controls label { display: grid; gap: 6px; font: 800 9px/1 "Courier New", monospace; letter-spacing: 1px; }
 .game-controls select { min-height: 45px; border: 1.5px solid var(--ink); background: var(--cream); padding: 0 32px 0 12px; font: 800 10px/1 "Courier New", monospace; }
@@ -146,6 +151,8 @@ h1 em, .proof-copy h2 em { font-family: Georgia, serif; font-weight: 400; }
 .manual-control { margin-top: 24px; padding: 14px 0; border-block: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; }
 .manual-control button { border: 0; background: none; padding: 0; font: 900 11px/1 "Courier New", monospace; text-transform: uppercase; text-decoration: underline; cursor: pointer; }
 .manual-control span { font: 700 9px/1 "Courier New", monospace; color: var(--muted); text-transform: uppercase; }
+.always-on-dot { display: inline-flex; align-items: center; gap: 7px; color: var(--ink) !important; }
+.always-on-dot i { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px rgba(125, 207, 145, .18); }
 .intel-column { display: grid; gap: 22px; }
 
 .mood-panel, .move-card, .event-rail, .chain-actions { border: 1.5px solid var(--ink); background: var(--paper); }
@@ -193,6 +200,9 @@ h1 em, .proof-copy h2 em { font-family: Georgia, serif; font-weight: 400; }
 .network-pill { white-space: nowrap; padding: 8px 9px; border: 1px solid var(--ink); }
 .network-pill i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--green); margin-right: 5px; }
 .event-list { margin-top: 22px; }
+.event-empty { min-height: 92px; border-top: 1px solid var(--line); display: grid; align-content: center; gap: 7px; }
+.event-empty strong { font-size: 12px; }
+.event-empty span { font: 700 9px/1.4 "Courier New", monospace; color: var(--muted); text-transform: uppercase; }
 .event-row { display: grid; grid-template-columns: 35px 1fr auto; align-items: center; gap: 11px; padding: 14px 0; border-top: 1px solid var(--line); }
 .event-glyph { width: 33px; height: 33px; border: 1px solid var(--ink); display: grid; place-items: center; }
 .event-glyph--calm { background: var(--sky); }
@@ -247,6 +257,8 @@ footer > span { text-align: right; font: 700 8px/1.4 "Courier New", monospace; l
 .replay-hero { display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: end; padding: 80px clamp(24px, 6vw, 92px); border-bottom: 1px solid var(--ink); background: var(--acid); }
 .replay-hero h1 { font-size: clamp(48px, 6vw, 82px); margin-bottom: 0; }
 .replay-hero > p { max-width: 510px; font: 17px/1.55 Georgia, serif; }
+.replay-hero-copy { display: grid; justify-items: start; gap: 20px; }
+.replay-hero-copy p { max-width: 510px; margin: 0; font: 17px/1.55 Georgia, serif; }
 .empty-replay { min-height: 510px; display: grid; place-items: center; align-content: center; text-align: center; padding: 40px; }
 .empty-replay > span { font-size: 84px; }
 .empty-replay h2 { margin: 14px 0 0; font-size: 35px; letter-spacing: -1.5px; }
@@ -293,6 +305,9 @@ footer > span { text-align: right; font: 700 8px/1.4 "Courier New", monospace; l
   .sun-disc { width: 330px; }
   .hero-knight { font-size: 290px; }
   .arena-titlebar { align-items: flex-start; flex-direction: column; }
+  .chain-clock { width: 100%; flex-wrap: wrap; }
+  .chain-clock > div { flex: 1; min-width: 125px; }
+  .chain-clock .outline-button { width: 100%; }
   .game-controls { width: 100%; flex-wrap: wrap; }
   .game-controls .primary-button, .game-controls .outline-button { flex: 1; }
   .game-controls label { width: 100%; }

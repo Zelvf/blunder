@@ -1,22 +1,36 @@
-# BLUNDER — the onchain chess brain
+# BLUNDER — the always-on onchain chess brain
 
-BLUNDER is a working spectator chess experiment. An autonomous bot plays legal games while public mood signals change how it selects from its candidate moves. Calm chooses the clean line, greedy overweights captures, and tilted chooses from a wider risky set.
+BLUNDER is one continuous public chess game driven by Solana mainnet. Every viewer derives the same board from the same finalized slot clock and the same ordered mood signals. There is no browser-specific start button, pause button, random reset, or local simulation.
 
-The entire proof loop is visible:
+The public proof loop is:
 
-`Solana action → verified event → bounded mood → legal candidates → public move → replay + state hash`
+`finalized Solana slots → canonical move tick → verified mood signals → legal move → FEN + state hash`
 
-## Included
+## What is live
 
-- Autonomous, legal browser chess powered by `chess.js`
-- A deterministic two-ply candidate evaluator
+- One global game state for every browser
+- Automatic play 24/7, with one ply unlocked every 20 finalized Solana slots
+- Deterministic legal chess powered by `chess.js`
+- Automatic new matches when a game ends, plus deterministic round boundaries
 - Calm, greedy, and tilted selection policies
-- Instant event simulation for demos
-- Phantom wallet connection and bounded Solana mainnet self-transfer actions
-- Server-side transaction signature verification
-- Event rail, FEN snapshots, move reasoning, and SHA-256 checkpoints
-- A local replay room persisted in `localStorage`
-- Responsive, accessible Next.js interface
+- A public Solana signal channel that every server instance can discover
+- Phantom signing for bounded mainnet mood actions
+- Server-side transaction validation and finalization
+- Global replay, FEN snapshots, candidate moves, evaluations, and SHA-256 checkpoints
+- Responsive, accessible Next.js interface deployed on Vercel
+
+## How Solana controls the game
+
+Solana is the shared clock and event ledger. The server reads the latest **finalized slot**. Every 20 finalized slots unlocks one chess ply, so closing the website does not pause the game. When the site is opened again, the server deterministically replays the current round to the latest finalized tick.
+
+Mood actions are normal signed Solana transactions with exactly two bounded instructions:
+
+1. A 1,000, 2,000, or 3,000 lamport self-transfer encodes calm, greedy, or tilted. The marker amount returns to the signer.
+2. A zero-lamport transfer references BLUNDER's fixed public channel address. This makes the transaction discoverable through standard Solana RPC without moving funds to the channel.
+
+The server scans that channel, ignores transactions that do not match the exact protocol, orders valid actions by finalized slot, and applies them to the next eligible BLUNDER moves. Given the same finalized slot, events, and source code, every server and browser produces the same FEN and move log.
+
+The chess engine itself runs deterministically off-chain on Vercel; this is not a custom Solana program storing every board square. Solana provides canonical time, event ordering, signatures, and public evidence, while the open-source engine computes the legal chess state.
 
 ## Run locally
 
@@ -26,26 +40,22 @@ copy .env.example .env.local
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
-
-The site works without environment variables by falling back to Solana's rate-limited public mainnet RPC. For production reliability, set a private server-side endpoint:
+Open [http://localhost:3000](http://localhost:3000). The site works without environment variables by falling back to Solana's rate-limited public mainnet RPC. For production reliability, set a private server-side endpoint:
 
 ```env
 SOLANA_RPC_URL=https://your-private-mainnet-rpc.example
 NEXT_PUBLIC_GITHUB_URL=https://github.com/your-name/blunder
 ```
 
-## Mainnet action markers
+## Mainnet signal markers
 
-The transparent action sender signs a tiny native-SOL transfer from the connected wallet back to itself. No principal leaves the wallet, but the signer pays a real Solana mainnet network fee. The amount is the public mood marker:
+| Lamports | Mood | Duration |
+| ---: | --- | ---: |
+| 1,000 | calm | 2 BLUNDER moves |
+| 2,000 | greedy | 3 BLUNDER moves |
+| 3,000 | tilted | 3 BLUNDER moves |
 
-| Lamports | Mood |
-| ---: | --- |
-| 1,000 | calm |
-| 2,000 | greedy |
-| 3,000 | tilted |
-
-These actions have no financial game mechanic. There are no wagers, pooled funds, odds, payouts, or claims of value.
+Only the normal Solana network fee leaves the wallet. There are no wagers, pooled funds, odds, payouts, or claims of value.
 
 ## Commands
 
@@ -59,18 +69,11 @@ npm run build      # production build
 ## API
 
 - `GET /api/health` — deployment and network health
-- `GET /api/solana/config` — returns a fresh mainnet blockhash for a wallet action
-- `POST /api/solana/submit` — validates, submits, confirms, and re-verifies a signed bounded action
-- `POST /api/verify-signature` — verifies a fresh successful mainnet action and returns its mood marker
+- `GET /api/game/state` — canonical finalized game state for all viewers
+- `GET /api/solana/config` — fresh mainnet blockhash and channel address
+- `POST /api/solana/submit` — validate, submit, finalize, and re-verify a mood action
+- `POST /api/verify-signature` — verify a fresh canonical channel signature
 
-Request body:
+## Security boundaries
 
-```json
-{ "signature": "..." }
-```
-
-## Production notes
-
-The server rejects transactions that are not signed self-transfers of exactly 1,000, 2,000, or 3,000 lamports. Pasted signatures must be no more than 15 minutes old. Private keys never reach the application; Phantom signs locally and the server receives only the signed transaction bytes.
-
-The current MVP keeps live game history in the browser so it remains deployable without a database. For a shared global match, replace local persistence with Postgres/Supabase and run the game loop in a durable worker. The UI and event schema are already separated for that upgrade.
+The server accepts only a signed self-transfer marker plus a zero-lamport reference to the fixed channel. It rejects extra instructions, unsupported amounts, mismatched signers, non-finalized failures, and old pasted signatures. Private keys never reach the application; Phantom signs locally and the server receives only serialized signed transaction bytes.

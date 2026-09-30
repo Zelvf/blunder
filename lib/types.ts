@@ -13,9 +13,10 @@ export type ChainEvent = {
   signature: string;
   mood: Mood;
   lamports: number;
+  slot: number;
   timestamp: number;
   verified: boolean;
-  source: "simulation" | "mainnet";
+  source: "mainnet";
   explorerUrl?: string;
 };
 
@@ -38,11 +39,21 @@ export type MoveRecord = {
   stateHash?: string;
 };
 
-export type SavedGame = {
-  version: 1;
+export type GlobalGameState = {
+  network: "mainnet-beta";
+  channelAddress: string;
+  finalizedSlot: number;
+  roundStartSlot: number;
+  nextMoveSlot: number;
+  slotsUntilNextMove: number;
+  moveIntervalSlots: number;
   gameId: string;
-  startedAt: number;
+  startedAtSlot: number;
+  fen: string;
   moves: MoveRecord[];
   events: ChainEvent[];
+  mood: Mood;
+  moodMovesLeft: number;
   result: string;
+  synchronizedAt: number;
 };
