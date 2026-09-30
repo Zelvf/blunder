@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "BLUNDER — The onchain chess brain",
   description:
     "Watch a public chess bot get calmer, greedier, or catastrophically overconfident as verified Solana events arrive.",
-  metadataBase: new URL("https://blunder-arena.vercel.app"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://blunder-eta.vercel.app"),
   openGraph: {
     title: "BLUNDER — The onchain chess brain",
     description: "Every onchain event changes the way it plays.",
