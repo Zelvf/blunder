@@ -12,7 +12,7 @@ The entire proof loop is visible:
 - A deterministic two-ply candidate evaluator
 - Calm, greedy, and tilted selection policies
 - Instant event simulation for demos
-- Phantom wallet connection and Solana devnet self-transfer actions
+- Phantom wallet connection and bounded Solana mainnet self-transfer actions
 - Server-side transaction signature verification
 - Event rail, FEN snapshots, move reasoning, and SHA-256 checkpoints
 - A local replay room persisted in `localStorage`
@@ -28,16 +28,16 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-The site works with no environment variables. By default, chain verification uses Solana's public devnet RPC. For better rate limits, set:
+The site works without environment variables by falling back to Solana's rate-limited public mainnet RPC. For production reliability, set a private server-side endpoint:
 
 ```env
-NEXT_PUBLIC_SOLANA_RPC_URL=https://your-devnet-rpc.example
+SOLANA_RPC_URL=https://your-private-mainnet-rpc.example
 NEXT_PUBLIC_GITHUB_URL=https://github.com/your-name/blunder
 ```
 
-## Devnet action markers
+## Mainnet action markers
 
-The transparent action sender transfers a tiny number of devnet lamports from the connected wallet back to itself. The amount is the public mood marker:
+The transparent action sender signs a tiny native-SOL transfer from the connected wallet back to itself. No principal leaves the wallet, but the signer pays a real Solana mainnet network fee. The amount is the public mood marker:
 
 | Lamports | Mood |
 | ---: | --- |
@@ -59,7 +59,9 @@ npm run build      # production build
 ## API
 
 - `GET /api/health` — deployment and network health
-- `POST /api/verify-signature` — verifies a successful devnet transaction and returns its mood marker
+- `GET /api/solana/config` — returns a fresh mainnet blockhash for a wallet action
+- `POST /api/solana/submit` — validates, submits, confirms, and re-verifies a signed bounded action
+- `POST /api/verify-signature` — verifies a fresh successful mainnet action and returns its mood marker
 
 Request body:
 
@@ -68,5 +70,7 @@ Request body:
 ```
 
 ## Production notes
+
+The server rejects transactions that are not signed self-transfers of exactly 1,000, 2,000, or 3,000 lamports. Pasted signatures must be no more than 15 minutes old. Private keys never reach the application; Phantom signs locally and the server receives only the signed transaction bytes.
 
 The current MVP keeps live game history in the browser so it remains deployable without a database. For a shared global match, replace local persistence with Postgres/Supabase and run the game loop in a durable worker. The UI and event schema are already separated for that upgrade.

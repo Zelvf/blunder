@@ -19,7 +19,7 @@ export function EventRail({ events }: { events: ChainEvent[] }) {
           <p className="eyebrow">SOLANA EVENT RAIL</p>
           <h2>What just got into it?</h2>
         </div>
-        <span className="network-pill"><i /> DEVNET</span>
+        <span className="network-pill"><i /> MAINNET</span>
       </div>
       <div className="event-list" aria-live="polite">
         {events.slice(0, 4).map((event, index) => (

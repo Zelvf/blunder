@@ -28,6 +28,7 @@ export function Arena() {
   const moodRef = useRef<Mood>("calm");
   const moodMovesRef = useRef(0);
   const pendingEventRef = useRef<ChainEvent | undefined>(undefined);
+  const usedSignaturesRef = useRef(new Set<string>());
   const [fen, setFen] = useState(() => new Chess().fen());
   const [moves, setMoves] = useState<MoveRecord[]>([]);
   const [events, setEvents] = useState<ChainEvent[]>([INITIAL_EVENT]);
@@ -123,6 +124,7 @@ export function Arena() {
     moodRef.current = "calm";
     moodMovesRef.current = 0;
     pendingEventRef.current = undefined;
+    usedSignaturesRef.current.clear();
     setFen(gameRef.current.fen());
     setMoves([]);
     setEvents([INITIAL_EVENT]);
@@ -135,6 +137,8 @@ export function Arena() {
   }
 
   function applyEvent(event: ChainEvent) {
+    if (event.source === "mainnet" && usedSignaturesRef.current.has(event.signature)) return;
+    if (event.source === "mainnet") usedSignaturesRef.current.add(event.signature);
     setEvents((current) => [event, ...current].slice(0, 12));
     moodRef.current = event.mood;
     moodMovesRef.current = event.mood === "calm" ? 2 : 3;
@@ -148,7 +152,7 @@ export function Arena() {
       <SiteHeader />
       <section className="hero-grid">
         <div className="hero-copy">
-          <p className="hero-kicker"><span /> ONCHAIN CHESS EXPERIMENT · DEVNET</p>
+          <p className="hero-kicker"><span /> ONCHAIN CHESS EXPERIMENT · MAINNET</p>
           <h1>Every move is<br /><em>a state of mind.</em></h1>
           <p className="hero-lede">BLUNDER is a public chess brain. Verified Solana events make it calmer, greedier, or catastrophically overconfident—then it has to live with the move.</p>
           <div className="hero-actions">
@@ -217,7 +221,7 @@ export function Arena() {
           <Link className="outline-button" href="/replay">Open the replay room →</Link>
         </div>
         <ol className="proof-steps">
-          <li><span>01</span><div><strong>ONCHAIN ACTION</strong><p>A devnet signature is verified server-side.</p></div><b>◎</b></li>
+          <li><span>01</span><div><strong>ONCHAIN ACTION</strong><p>A mainnet signature is verified server-side.</p></div><b>◎</b></li>
           <li><span>02</span><div><strong>MOOD REDUCER</strong><p>A bounded, public rule changes risk appetite.</p></div><b>◉</b></li>
           <li><span>03</span><div><strong>LEGAL CANDIDATES</strong><p>chess.js validates every possible continuation.</p></div><b>♙</b></li>
           <li><span>04</span><div><strong>PUBLIC MOVE</strong><p>Reasoning, FEN, eval, and proof ship together.</p></div><b>↗</b></li>
@@ -226,7 +230,7 @@ export function Arena() {
 
       <footer>
         <div className="wordmark"><span className="wordmark-mark">♞</span><span>BLUNDER</span></div>
-        <p>A spectator experiment on Solana devnet. No wagers, pooled funds, payouts, or promises of value.</p>
+        <p>A spectator experiment on Solana mainnet. Actions pay a network fee, never a wager. No pooled funds, payouts, or promises of value.</p>
         <span>BUILT TO MAKE BAD IDEAS AUDITABLE.</span>
       </footer>
     </main>

@@ -2,7 +2,7 @@ export function GET() {
   return Response.json({
     ok: true,
     service: "blunder-arena",
-    network: "solana-devnet",
+    network: "solana-mainnet-beta",
     timestamp: new Date().toISOString(),
   });
 }

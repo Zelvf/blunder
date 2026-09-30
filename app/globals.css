@@ -207,6 +207,9 @@ h1 em, .proof-copy h2 em { font-family: Georgia, serif; font-weight: 400; }
 .chain-actions { max-width: 1270px; margin: clamp(70px, 8vw, 120px) auto; padding: clamp(28px, 4vw, 56px); box-shadow: var(--shadow); }
 .chain-actions .section-heading h2 { font-size: clamp(31px, 4vw, 52px); }
 .section-intro { max-width: 680px; margin: 15px 0 30px; font: 16px/1.55 Georgia, serif; color: #59574f; }
+.mainnet-consent { display: grid; grid-template-columns: 20px 1fr; gap: 12px; align-items: start; margin: -8px 0 24px; padding: 15px; border: 1px solid var(--ink); background: #fff3cd; font: 12px/1.45 "Courier New", monospace; cursor: pointer; }
+.mainnet-consent input { width: 18px; height: 18px; margin: 0; accent-color: var(--ink); }
+.mainnet-consent strong { display: block; margin-bottom: 3px; text-transform: uppercase; }
 .action-grid { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--ink); }
 .action-card { min-height: 145px; padding: 23px; border-right: 1px solid var(--ink); display: grid; align-content: space-between; }
 .action-card:last-child { border: 0; }

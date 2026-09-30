@@ -15,7 +15,7 @@ export type ChainEvent = {
   lamports: number;
   timestamp: number;
   verified: boolean;
-  source: "simulation" | "devnet";
+  source: "simulation" | "mainnet";
   explorerUrl?: string;
 };
 
